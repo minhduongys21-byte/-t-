@@ -1,0 +1,290 @@
+-- DAT CHUA V2 | Vertical Mobile Menu
+-- UI demo only
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "DatChuaV2"
+gui.ResetOnSpawn = false
+
+pcall(function()
+    gui.Parent = CoreGui
+end)
+
+if not gui.Parent then
+    gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local RED = Color3.fromRGB(220, 35, 45)
+local BG = Color3.fromRGB(20, 20, 25)
+local PANEL = Color3.fromRGB(38, 38, 46)
+local WHITE = Color3.fromRGB(255, 255, 255)
+
+local function create(class, props, parent)
+    local obj = Instance.new(class)
+    for k, v in pairs(props) do
+        obj[k] = v
+    end
+    obj.Parent = parent
+    return obj
+end
+
+local menu = create("Frame", {
+    Size = UDim2.fromOffset(285, 380),
+    Position = UDim2.new(0.5, -142, 0.5, -190),
+    BackgroundColor3 = BG,
+    BorderSizePixel = 0
+}, gui)
+
+create("UICorner", {
+    CornerRadius = UDim.new(0, 12)
+}, menu)
+
+local header = create("TextLabel", {
+    Size = UDim2.new(1, -45, 0, 42),
+    Position = UDim2.fromOffset(12, 0),
+    BackgroundTransparency = 1,
+    Text = "DAT CHUA V2",
+    TextColor3 = RED,
+    Font = Enum.Font.GothamBold,
+    TextSize = 19,
+    TextXAlignment = Enum.TextXAlignment.Left
+}, menu)
+
+local close = create("TextButton", {
+    Size = UDim2.fromOffset(32, 32),
+    Position = UDim2.new(1, -37, 0, 5),
+    BackgroundColor3 = RED,
+    Text = "X",
+    TextColor3 = WHITE,
+    Font = Enum.Font.GothamBold,
+    TextSize = 17
+}, menu)
+
+create("UICorner", {
+    CornerRadius = UDim.new(0, 8)
+}, close)
+
+local scroll = create("ScrollingFrame", {
+    Position = UDim2.fromOffset(8, 45),
+    Size = UDim2.new(1, -16, 1, -53),
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    ScrollBarThickness = 4,
+    CanvasSize = UDim2.new(0, 0, 0, 0),
+    AutomaticCanvasSize = Enum.AutomaticSize.Y
+}, menu)
+
+create("UIListLayout", {
+    Padding = UDim.new(0, 8),
+    SortOrder = Enum.SortOrder.LayoutOrder
+}, scroll)
+
+local bubble = create("TextButton", {
+    Size = UDim2.fromOffset(54, 54),
+    Position = UDim2.new(0, 20, 0.5, -27),
+    BackgroundColor3 = RED,
+    Text = "DC",
+    TextColor3 = WHITE,
+    Font = Enum.Font.GothamBold,
+    TextSize = 18,
+    Visible = false
+}, gui)
+
+create("UICorner", {
+    CornerRadius = UDim.new(1, 0)
+}, bubble)
+
+close.Activated:Connect(function()
+    menu.Visible = false
+    bubble.Visible = true
+end)
+
+bubble.Activated:Connect(function()
+    menu.Visible = true
+    bubble.Visible = false
+end)
+
+local values = {}
+
+local function addToggle(title)
+    local row = create("Frame", {
+        Size = UDim2.new(1, -4, 0, 42),
+        BackgroundColor3 = PANEL,
+        BorderSizePixel = 0
+    }, scroll)
+
+    create("UICorner", {
+        CornerRadius = UDim.new(0, 8)
+    }, row)
+
+    create("TextLabel", {
+        Size = UDim2.new(1, -90, 1, 0),
+        Position = UDim2.fromOffset(10, 0),
+        BackgroundTransparency = 1,
+        Text = title,
+        TextColor3 = WHITE,
+        Font = Enum.Font.Gotham,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, row)
+
+    local on = false
+    local button = create("TextButton", {
+        Size = UDim2.fromOffset(70, 28),
+        Position = UDim2.new(1, -78, 0.5, -14),
+        BackgroundColor3 = Color3.fromRGB(75, 75, 80),
+        Text = "OFF",
+        TextColor3 = WHITE,
+        Font = Enum.Font.GothamBold,
+        TextSize = 13
+    }, row)
+
+    create("UICorner", {
+        CornerRadius = UDim.new(0, 7)
+    }, button)
+
+    values[title] = false
+
+    button.Activated:Connect(function()
+        on = not on
+        values[title] = on
+        button.Text = on and "ON" or "OFF"
+        button.BackgroundColor3 = on and RED
+            or Color3.fromRGB(75, 75, 80)
+    end)
+end
+
+local function addSlider(title)
+    local row = create("Frame", {
+        Size = UDim2.new(1, -4, 0, 58),
+        BackgroundColor3 = PANEL,
+        BorderSizePixel = 0
+    }, scroll)
+
+    create("UICorner", {
+        CornerRadius = UDim.new(0, 8)
+    }, row)
+
+    create("TextLabel", {
+        Size = UDim2.new(1, -45, 0, 25),
+        Position = UDim2.fromOffset(10, 0),
+        BackgroundTransparency = 1,
+        Text = title,
+        TextColor3 = WHITE,
+        Font = Enum.Font.Gotham,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, row)
+
+    local number = create("TextLabel", {
+        Size = UDim2.fromOffset(35, 25),
+        Position = UDim2.new(1, -42, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "50",
+        TextColor3 = RED,
+        Font = Enum.Font.GothamBold,
+        TextSize = 14
+    }, row)
+
+    local bar = create("TextButton", {
+        Size = UDim2.new(1, -20, 0, 12),
+        Position = UDim2.fromOffset(10, 34),
+        BackgroundColor3 = Color3.fromRGB(75, 75, 80),
+        Text = "",
+        AutoButtonColor = false
+    }, row)
+
+    create("UICorner", {
+        CornerRadius = UDim.new(1, 0)
+    }, bar)
+
+    local fill = create("Frame", {
+        Size = UDim2.new(0.5, 0, 1, 0),
+        BackgroundColor3 = RED,
+        BorderSizePixel = 0
+    }, bar)
+
+    create("UICorner", {
+        CornerRadius = UDim.new(1, 0)
+    }, fill)
+
+    values[title] = 50
+
+    local dragging = false
+
+    local function update(x)
+        local width = bar.AbsoluteSize.X
+        if width <= 0 then return end
+
+        local percent = math.clamp(
+            (x - bar.AbsolutePosition.X) / width,
+            0, 1
+        )
+
+        local value = math.clamp(
+            math.floor(percent * 99 + 1), 1, 100
+        )
+
+        values[title] = value
+        number.Text = tostring(value)
+        fill.Size = UDim2.new(percent, 0, 1, 0)
+    end
+
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            update(input.Position.X)
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if dragging and (
+            input.UserInputType == Enum.UserInputType.Touch
+            or input.UserInputType == Enum.UserInputType.MouseMovement
+        ) then
+            update(input.Position.X)
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+end
+
+local function addHeading(text)
+    create("TextLabel", {
+        Size = UDim2.new(1, -4, 0, 28),
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = RED,
+        Font = Enum.Font.GothamBold,
+        TextSize = 15,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, scroll)
+end
+
+addHeading("AIM")
+addToggle("Aim Assist")
+addSlider("Aim Strength")
+
+addHeading("FOV")
+addToggle("FOV Circle")
+addSlider("FOV Size")
+
+addHeading("ESP")
+addToggle("ESP Demo")
+
+addHeading("MOVEMENT")
+addToggle("Fly")
+addSlider("Fly Speed")
+addToggle("Tang toc")
+addSlider("Speed Value")
+
+print("DAT CHUA V2 UI loaded")
