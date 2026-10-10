@@ -1,0 +1,224 @@
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Xóa menu cũ
+local old = playerGui:FindFirstChild("DatChuaMenu")
+if old then old:Destroy() end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "DatChuaMenu"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local function create(class, props, parent)
+    local obj = Instance.new(class)
+    for k, v in pairs(props) do obj[k] = v end
+    obj.Parent = parent
+    return obj
+end
+
+local menu = create("Frame", {
+    Size = UDim2.fromOffset(280, 390),
+    Position = UDim2.new(0.5, -140, 0.5, -195),
+    BackgroundColor3 = Color3.fromRGB(25, 25, 32),
+    Active = true
+}, gui)
+
+create("UICorner", {CornerRadius = UDim.new(0, 12)}, menu)
+
+create("TextLabel", {
+    Size = UDim2.new(1, -45, 0, 40),
+    BackgroundTransparency = 1,
+    Text = "ĐẠT CHÚA MENU",
+    TextColor3 = Color3.fromRGB(255, 80, 80),
+    TextSize = 20,
+    Font = Enum.Font.GothamBold
+}, menu)
+
+local close = create("TextButton", {
+    Size = UDim2.fromOffset(35, 30),
+    Position = UDim2.new(1, -40, 0, 5),
+    Text = "X",
+    TextSize = 18,
+    TextColor3 = Color3.new(1, 1, 1),
+    BackgroundColor3 = Color3.fromRGB(190, 45, 45)
+}, menu)
+
+local floating = create("TextButton", {
+    Size = UDim2.fromOffset(52, 52),
+    Position = UDim2.new(0, 15, 0.5, -26),
+    Text = "Đ",
+    TextSize = 25,
+    Font = Enum.Font.GothamBold,
+    TextColor3 = Color3.new(1, 1, 1),
+    BackgroundColor3 = Color3.fromRGB(40, 100, 230),
+    Visible = false
+}, gui)
+
+create("UICorner", {CornerRadius = UDim.new(1, 0)}, floating)
+
+close.Activated:Connect(function()
+    menu.Visible = false
+    floating.Visible = true
+end)
+
+floating.Activated:Connect(function()
+    menu.Visible = true
+    floating.Visible = false
+end)
+
+-- Thanh kéo 1–100
+local function makeSlider(label, y, callback)
+    create("TextLabel", {
+        Position = UDim2.fromOffset(15, y),
+        Size = UDim2.fromOffset(190, 24),
+        BackgroundTransparency = 1,
+        Text = label .. ": 50",
+        TextColor3 = Color3.new(1, 1, 1),
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, menu)
+
+    local track = create("TextButton", {
+        Position = UDim2.fromOffset(15, y + 27),
+        Size = UDim2.fromOffset(245, 12),
+        Text = "",
+        BackgroundColor3 = Color3.fromRGB(65, 65, 75),
+        AutoButtonColor = false
+    }, menu)
+
+    create("UICorner", {CornerRadius = UDim.new(1, 0)}, track)
+
+    local fill = create("Frame", {
+        Size = UDim2.new(0.5, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(255, 65, 75)
+    }, track)
+
+    create("UICorner", {CornerRadius = UDim.new(1, 0)}, fill)
+
+    local value = 50
+    local dragging = false
+
+    local function update(input)
+        local percent = math.clamp(
+            (input.Position.X - track.AbsolutePosition.X) /
+            track.AbsoluteSize.X, 0, 1
+        )
+        value = math.clamp(math.floor(percent * 99 + 1), 1, 100)
+        fill.Size = UDim2.new(percent, 0, 1, 0)
+        track.Parent:FindFirstChildWhichIsA("TextLabel").Text =
+            label .. ": " .. value
+        callback(value)
+    end
+
+    track.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            update(input)
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if dragging and (
+            input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch
+        ) then
+            update(input)
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+local settings = {
+    Aim = 50,
+    Fly = 50,
+    Speed = 50,
+    POV = 50
+}
+
+makeSlider("Aim Assist", 55, function(v)
+    settings.Aim = v
+end)
+
+makeSlider("Fly Speed", 125, function(v)
+    settings.Fly = v
+end)
+
+makeSlider("Tăng tốc", 195, function(v)
+    settings.Speed = v
+end)
+
+makeSlider("POV Zoom", 265, function(v)
+    settings.POV = v
+end)
+
+-- Chuyển góc nhìn thứ nhất / thứ ba
+local povButton = create("TextButton", {
+    Position = UDim2.fromOffset(15, 330),
+    Size = UDim2.fromOffset(245, 38),
+    Text = "POV: THIRD PERSON",
+    TextColor3 = Color3.new(1, 1, 1),
+    BackgroundColor3 = Color3.fromRGB(55, 80, 150),
+    TextSize = 14
+}, menu)
+
+local firstPerson = false
+
+povButton.Activated:Connect(function()
+    firstPerson = not firstPerson
+
+    if firstPerson then
+        player.CameraMode = Enum.CameraMode.LockFirstPerson
+        povButton.Text = "POV: FIRST PERSON"
+    else
+        player.CameraMode = Enum.CameraMode.Classic
+        player.CameraMinZoomDistance = 5
+        player.CameraMaxZoomDistance = math.max(5, settings.POV)
+        povButton.Text = "POV: THIRD PERSON"
+    end
+end)
+
+-- Kéo menu bằng chuột hoặc cảm ứng
+local dragging, dragStart, startPos
+
+menu.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = menu.Position
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
+        local delta = input.Position - dragStart
+        menu.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+print("DAT CHUA MENU loaded!")
