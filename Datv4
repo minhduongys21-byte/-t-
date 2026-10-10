@@ -1,0 +1,481 @@
+-- MOBILE CONTROL MENU
+-- Roblox Studio / StarterPlayerScripts / LocalScript
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local settings = {
+    Aim = false,
+    ESP = false,
+    Fly = false,
+    Speed = false,
+    FOV = 50,
+    SpeedValue = 50
+}
+
+local oldGui = playerGui:FindFirstChild("MobileControlMenu")
+if oldGui then
+    oldGui:Destroy()
+end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "MobileControlMenu"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = false
+gui.Parent = playerGui
+
+-- MAIN PANEL
+local panel = Instance.new("Frame")
+panel.Name = "Panel"
+panel.Size = UDim2.fromOffset(250, 440)
+panel.Position = UDim2.new(0, 15, 0.15, 0)
+panel.BackgroundColor3 = Color3.fromRGB(22, 25, 36)
+panel.BorderSizePixel = 0
+panel.Active = true
+panel.Parent = gui
+
+Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 12)
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(65, 130, 255)
+stroke.Thickness = 1.5
+stroke.Parent = panel
+
+-- TITLE BAR
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -42, 0, 42)
+title.Position = UDim2.fromOffset(8, 0)
+title.BackgroundTransparency = 1
+title.Text = "MOBILE CONTROL"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.Active = true
+title.Parent = panel
+
+-- CLOSE X
+local close = Instance.new("TextButton")
+close.Size = UDim2.fromOffset(34, 34)
+close.Position = UDim2.new(1, -38, 0, 4)
+close.BackgroundColor3 = Color3.fromRGB(200, 50, 55)
+close.Text = "X"
+close.TextColor3 = Color3.new(1, 1, 1)
+close.TextSize = 20
+close.Font = Enum.Font.GothamBold
+close.Parent = panel
+
+Instance.new("UICorner", close).CornerRadius = UDim.new(0, 8)
+
+-- REOPEN BUTTON
+local reopen = Instance.new("TextButton")
+reopen.Size = UDim2.fromOffset(70, 44)
+reopen.Position = UDim2.new(0, 15, 0.2, 0)
+reopen.BackgroundColor3 = Color3.fromRGB(35, 90, 190)
+reopen.Text = "MENU"
+reopen.TextColor3 = Color3.new(1, 1, 1)
+reopen.TextSize = 16
+reopen.Font = Enum.Font.GothamBold
+reopen.Visible = false
+reopen.Parent = gui
+
+Instance.new("UICorner", reopen).CornerRadius = UDim.new(0, 10)
+
+close.Activated:Connect(function()
+    panel.Visible = false
+    reopen.Visible = true
+end)
+
+reopen.Activated:Connect(function()
+    panel.Visible = true
+    reopen.Visible = false
+end)
+
+-- DRAG PANEL WITH TOUCH OR MOUSE
+local dragging = false
+local dragInput
+local dragStart
+local startPosition
+
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+        dragging = true
+        dragStart = input.Position
+        startPosition = panel.Position
+        dragInput = input
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseMovement
+    ) then
+        local delta = input.Position - dragStart
+
+        panel.Position = UDim2.new(
+            startPosition.X.Scale,
+            startPosition.X.Offset + delta.X,
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input == dragInput
+        or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- BUTTON CREATOR
+local function createButton(text, y)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -20, 0, 36)
+    button.Position = UDim2.fromOffset(10, y)
+    button.BackgroundColor3 = Color3.fromRGB(55, 60, 78)
+    button.Text = text .. ": OFF"
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.TextSize = 15
+    button.Font = Enum.Font.GothamBold
+    button.Parent = panel
+
+    Instance.new("UICorner", button).CornerRadius = UDim.new(0, 7)
+
+    return button
+end
+
+local function setButton(button, name, enabled)
+    button.Text = name .. (enabled and ": ON" or ": OFF")
+    button.BackgroundColor3 = enabled
+        and Color3.fromRGB(25, 145, 90)
+        or Color3.fromRGB(55, 60, 78)
+end
+
+-- CHARACTER HELPERS
+local function getCharacter()
+    local character = player.Character
+    if not character then return nil end
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local root = character:FindFirstChild("HumanoidRootPart")
+
+    if humanoid and root then
+        return character, humanoid, root
+    end
+
+    return nil
+end
+
+-- SPEED
+local speedButton = createButton("SPEED", 50)
+
+local speedBox = Instance.new("TextBox")
+speedBox.Size = UDim2.new(1, -20, 0, 30)
+speedBox.Position = UDim2.fromOffset(10, 90)
+speedBox.BackgroundColor3 = Color3.fromRGB(40, 44, 58)
+speedBox.TextColor3 = Color3.new(1, 1, 1)
+speedBox.Text = "50"
+speedBox.PlaceholderText = "Speed 1-100"
+speedBox.TextSize = 15
+speedBox.Parent = panel
+
+local function updateSpeed()
+    local _, humanoid = getCharacter()
+    if humanoid then
+        humanoid.WalkSpeed = settings.Speed
+            and settings.SpeedValue or 16
+    end
+end
+
+speedButton.Activated:Connect(function()
+    settings.Speed = not settings.Speed
+    setButton(speedButton, "SPEED", settings.Speed)
+    updateSpeed()
+end)
+
+speedBox.FocusLost:Connect(function()
+    settings.SpeedValue = math.clamp(
+        math.floor(tonumber(speedBox.Text) or 16), 1, 100
+    )
+    speedBox.Text = tostring(settings.SpeedValue)
+    updateSpeed()
+end)
+
+-- FLY CONTROLS
+local flyButton = createButton("FLY", 130)
+
+local upButton = Instance.new("TextButton")
+upButton.Size = UDim2.fromOffset(65, 40)
+upButton.Position = UDim2.new(1, -75, 0, 172)
+upButton.Text = "UP ▲"
+upButton.TextColor3 = Color3.new(1, 1, 1)
+upButton.TextSize = 14
+upButton.BackgroundColor3 = Color3.fromRGB(40, 90, 170)
+upButton.Visible = false
+upButton.Parent = panel
+
+local downButton = Instance.new("TextButton")
+downButton.Size = UDim2.fromOffset(65, 40)
+downButton.Position = UDim2.new(0, 10, 0, 172)
+downButton.Text = "DOWN ▼"
+downButton.TextColor3 = Color3.new(1, 1, 1)
+downButton.TextSize = 14
+downButton.BackgroundColor3 = Color3.fromRGB(40, 90, 170)
+downButton.Visible = false
+downButton.Parent = panel
+
+local vertical = 0
+
+upButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        vertical = 1
+    end
+end)
+
+downButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        vertical = -1
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        vertical = 0
+    end
+end)
+
+local flyVelocity
+local flyAttachment
+local flyConnection
+
+local function stopFly()
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+
+    if flyVelocity then
+        flyVelocity:Destroy()
+        flyVelocity = nil
+    end
+
+    if flyAttachment then
+        flyAttachment:Destroy()
+        flyAttachment = nil
+    end
+
+    local _, humanoid = getCharacter()
+    if humanoid then
+        humanoid.PlatformStand = false
+    end
+
+    upButton.Visible = false
+    downButton.Visible = false
+    vertical = 0
+end
+
+local function startFly()
+    stopFly()
+
+    local _, humanoid, root = getCharacter()
+    if not humanoid or not root then
+        return
+    end
+
+    flyAttachment = Instance.new("Attachment")
+    flyAttachment.Parent = root
+
+    flyVelocity = Instance.new("LinearVelocity")
+    flyVelocity.Attachment0 = flyAttachment
+    flyVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
+    flyVelocity.VelocityConstraintMode =
+        Enum.VelocityConstraintMode.Vector
+    flyVelocity.MaxForce = 100000
+    flyVelocity.VectorVelocity = Vector3.zero
+    flyVelocity.Parent = root
+
+    upButton.Visible = true
+    downButton.Visible = true
+
+    flyConnection = RunService.RenderStepped:Connect(function()
+        if not settings.Fly or not root.Parent then
+            stopFly()
+            return
+        end
+
+        local move = humanoid.MoveDirection
+        flyVelocity.VectorVelocity =
+            move * settings.SpeedValue
+            + Vector3.new(0, vertical * settings.SpeedValue, 0)
+    end)
+end
+
+flyButton.Activated:Connect(function()
+    settings.Fly = not settings.Fly
+    setButton(flyButton, "FLY", settings.Fly)
+
+    if settings.Fly then
+        startFly()
+    else
+        stopFly()
+    end
+end)
+
+-- ESP
+local espButton = createButton("ESP", 220)
+local highlights = {}
+
+local function clearESP()
+    for _, highlight in pairs(highlights) do
+        if highlight then
+            highlight:Destroy()
+        end
+    end
+    table.clear(highlights)
+end
+
+local function updateESP()
+    clearESP()
+
+    if not settings.ESP then return end
+
+    for _, other in ipairs(Players:GetPlayers()) do
+        if other ~= player and other.Character then
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "PracticeESP"
+            highlight.Adornee = other.Character
+            highlight.FillColor = Color3.fromRGB(0, 255, 100)
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+            highlight.FillTransparency = 0.75
+            highlight.Parent = gui
+
+            highlights[other] = highlight
+        end
+    end
+end
+
+espButton.Activated:Connect(function()
+    settings.ESP = not settings.ESP
+    setButton(espButton, "ESP", settings.ESP)
+    updateESP()
+end)
+
+Players.PlayerAdded:Connect(function(other)
+    other.CharacterAdded:Connect(function()
+        task.wait(1)
+        updateESP()
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function(other)
+    if highlights[other] then
+        highlights[other]:Destroy()
+        highlights[other] = nil
+    end
+end)
+
+-- AIM / FOV PRACTICE INDICATOR
+local aimButton = createButton("AIM", 260)
+
+local fovCircle = Instance.new("Frame")
+fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+fovCircle.Position = UDim2.fromScale(0.5, 0.5)
+fovCircle.Size = UDim2.fromOffset(200, 200)
+fovCircle.BackgroundTransparency = 1
+fovCircle.BorderSizePixel = 0
+fovCircle.Visible = false
+fovCircle.Parent = gui
+
+local circleStroke = Instance.new("UIStroke")
+circleStroke.Color = Color3.fromRGB(0, 255, 100)
+circleStroke.Thickness = 2
+circleStroke.Parent = fovCircle
+
+Instance.new("UICorner", fovCircle).CornerRadius = UDim.new(1, 0)
+
+local fovBox = Instance.new("TextBox")
+fovBox.Size = UDim2.new(1, -20, 0, 30)
+fovBox.Position = UDim2.fromOffset(10, 300)
+fovBox.BackgroundColor3 = Color3.fromRGB(40, 44, 58)
+fovBox.TextColor3 = Color3.new(1, 1, 1)
+fovBox.Text = "50"
+fovBox.PlaceholderText = "FOV 1-100"
+fovBox.TextSize = 15
+fovBox.Parent = panel
+
+local function updateFOV()
+    fovCircle.Size = UDim2.fromOffset(settings.FOV * 4, settings.FOV * 4)
+    fovCircle.Visible = settings.Aim
+end
+
+aimButton.Activated:Connect(function()
+    settings.Aim = not settings.Aim
+    setButton(aimButton, "AIM", settings.Aim)
+    updateFOV()
+end)
+
+fovBox.FocusLost:Connect(function()
+    settings.FOV = math.clamp(
+        math.floor(tonumber(fovBox.Text) or 50), 1, 100
+    )
+    fovBox.Text = tostring(settings.FOV)
+    updateFOV()
+end)
+
+-- RESET BUTTON
+local resetButton = Instance.new("TextButton")
+resetButton.Size = UDim2.new(1, -20, 0, 34)
+resetButton.Position = UDim2.fromOffset(10, 350)
+resetButton.BackgroundColor3 = Color3.fromRGB(160, 55, 55)
+resetButton.Text = "RESET SETTINGS"
+resetButton.TextColor3 = Color3.new(1, 1, 1)
+resetButton.TextSize = 14
+resetButton.Parent = panel
+
+resetButton.Activated:Connect(function()
+    settings.Speed = false
+    settings.Fly = false
+    settings.ESP = false
+    settings.Aim = false
+    settings.SpeedValue = 50
+    settings.FOV = 50
+
+    setButton(speedButton, "SPEED", false)
+    setButton(flyButton, "FLY", false)
+    setButton(espButton, "ESP", false)
+    setButton(aimButton, "AIM", false)
+
+    speedBox.Text = "50"
+    fovBox.Text = "50"
+
+    stopFly()
+    clearESP()
+    updateSpeed()
+    updateFOV()
+end)
+
+-- RESPAWN SUPPORT
+player.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    updateSpeed()
+
+    if settings.Fly then
+        startFly()
+    end
+
+    if settings.ESP then
+        updateESP()
+    end
+end)
+
+print("Mobile Control Menu loaded")
