@@ -1,0 +1,287 @@
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local old = playerGui:FindFirstChild("DatChuaV2")
+if old then old:Destroy() end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "DatChuaV2"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local function make(class, props, parent)
+    local obj = Instance.new(class)
+    for k, v in pairs(props) do
+        obj[k] = v
+    end
+    obj.Parent = parent
+    return obj
+end
+
+local red = Color3.fromRGB(235, 45, 60)
+local dark = Color3.fromRGB(25, 25, 32)
+local white = Color3.fromRGB(245, 245, 245)
+local gray = Color3.fromRGB(60, 60, 70)
+
+local menu = make("Frame", {
+    Size = UDim2.fromOffset(300, 390),
+    Position = UDim2.new(0.5, -150, 0.5, -195),
+    BackgroundColor3 = dark,
+    Active = true
+}, gui)
+
+make("UICorner", {
+    CornerRadius = UDim.new(0, 12)
+}, menu)
+
+make("TextLabel", {
+    Size = UDim2.new(1, -45, 0, 42),
+    BackgroundTransparency = 1,
+    Text = "DAT CHUA V2",
+    TextColor3 = red,
+    TextSize = 21,
+    Font = Enum.Font.GothamBold
+}, menu)
+
+local close = make("TextButton", {
+    Size = UDim2.fromOffset(35, 30),
+    Position = UDim2.new(1, -40, 0, 5),
+    Text = "X",
+    TextColor3 = white,
+    BackgroundColor3 = red,
+    TextSize = 17
+}, menu)
+
+local floating = make("TextButton", {
+    Size = UDim2.fromOffset(52, 52),
+    Position = UDim2.new(0, 15, 0.5, -26),
+    Text = "Đ",
+    TextSize = 25,
+    Font = Enum.Font.GothamBold,
+    TextColor3 = white,
+    BackgroundColor3 = red,
+    Visible = false
+}, gui)
+
+make("UICorner", {
+    CornerRadius = UDim.new(1, 0)
+}, floating)
+
+close.Activated:Connect(function()
+    menu.Visible = false
+    floating.Visible = true
+end)
+
+floating.Activated:Connect(function()
+    menu.Visible = true
+    floating.Visible = false
+end)
+
+-- Hai tab
+local content = make("Frame", {
+    Position = UDim2.fromOffset(10, 85),
+    Size = UDim2.new(1, -20, 1, -95),
+    BackgroundTransparency = 1
+}, menu)
+
+local aimTab = make("TextButton", {
+    Position = UDim2.fromOffset(10, 45),
+    Size = UDim2.fromOffset(130, 32),
+    Text = "🎯 AIM",
+    TextColor3 = white,
+    BackgroundColor3 = red,
+    TextSize = 15
+}, menu)
+
+local moveTab = make("TextButton", {
+    Position = UDim2.fromOffset(160, 45),
+    Size = UDim2.fromOffset(130, 32),
+    Text = "⚡ MOVEMENT",
+    TextColor3 = white,
+    BackgroundColor3 = gray,
+    TextSize = 14
+}, menu)
+
+local aimPage = make("Frame", {
+    Size = UDim2.fromScale(1, 1),
+    BackgroundTransparency = 1
+}, content)
+
+local movePage = make("Frame", {
+    Size = UDim2.fromScale(1, 1),
+    BackgroundTransparency = 1,
+    Visible = false
+}, content)
+
+aimTab.Activated:Connect(function()
+    aimPage.Visible = true
+    movePage.Visible = false
+    aimTab.BackgroundColor3 = red
+    moveTab.BackgroundColor3 = gray
+end)
+
+moveTab.Activated:Connect(function()
+    aimPage.Visible = false
+    movePage.Visible = true
+    aimTab.BackgroundColor3 = gray
+    moveTab.BackgroundColor3 = red
+end)
+
+local settings = {
+    Aim = {Enabled = false, Value = 50},
+    FOV = {Enabled = false, Value = 50},
+    ESP = {Enabled = false},
+    Fly = {Enabled = false, Value = 50},
+    Speed = {Enabled = false, Value = 50}
+}
+
+local function addToggle(parent, name, y, callback)
+    local button = make("TextButton", {
+        Position = UDim2.fromOffset(5, y),
+        Size = UDim2.new(1, -10, 0, 34),
+        BackgroundColor3 = gray,
+        TextColor3 = white,
+        TextSize = 14,
+        Font = Enum.Font.GothamBold,
+        Text = name .. ": OFF"
+    }, parent)
+
+    make("UICorner", {
+        CornerRadius = UDim.new(0, 7)
+    }, button)
+
+    local enabled = false
+
+    button.Activated:Connect(function()
+        enabled = not enabled
+        button.Text = name .. (enabled and ": ON" or ": OFF")
+        button.BackgroundColor3 = enabled and red or gray
+        callback(enabled)
+    end)
+
+    return button
+end
+
+local function addSlider(parent, name, y, callback)
+    local label = make("TextLabel", {
+        Position = UDim2.fromOffset(5, y),
+        Size = UDim2.new(1, -10, 0, 23),
+        BackgroundTransparency = 1,
+        Text = name .. ": 50",
+        TextColor3 = white,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, parent)
+
+    local track = make("TextButton", {
+        Position = UDim2.fromOffset(5, y + 27),
+        Size = UDim2.new(1, -10, 0, 12),
+        Text = "",
+        AutoButtonColor = false,
+        BackgroundColor3 = gray
+    }, parent)
+
+    make("UICorner", {
+        CornerRadius = UDim.new(1, 0)
+    }, track)
+
+    local fill = make("Frame", {
+        Size = UDim2.new(0.5, 0, 1, 0),
+        BackgroundColor3 = red
+    }, track)
+
+    make("UICorner", {
+        CornerRadius = UDim.new(1, 0)
+    }, fill)
+
+    local dragging = false
+
+    local function update(input)
+        local width = track.AbsoluteSize.X
+        if width <= 0 then return end
+
+        local pct = math.clamp(
+            (input.Position.X - track.AbsolutePosition.X) / width,
+            0, 1
+        )
+
+        local value = math.clamp(
+            math.floor(pct * 99 + 1), 1, 100
+        )
+
+        fill.Size = UDim2.new(pct, 0, 1, 0)
+        label.Text = name .. ": " .. value
+        callback(value)
+    end
+
+    track.Activated:Connect(function()
+        -- Activated hỗ trợ thao tác chạm trên điện thoại.
+    end)
+
+    track.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            update(input)
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if dragging and (
+            input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch
+        ) then
+            update(input)
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+-- Tầng AIM
+addToggle(aimPage, "Aim Assist", 5, function(on)
+    settings.Aim.Enabled = on
+end)
+
+addSlider(aimPage, "Aim Strength", 48, function(v)
+    settings.Aim.Value = v
+end)
+
+addToggle(aimPage, "FOV Circle", 100, function(on)
+    settings.FOV.Enabled = on
+end)
+
+addSlider(aimPage, "FOV Size", 143, function(v)
+    settings.FOV.Value = v
+end)
+
+addToggle(aimPage, "ESP Demo", 195, function(on)
+    settings.ESP.Enabled = on
+end)
+
+-- Tầng MOVEMENT
+addToggle(movePage, "Fly", 5, function(on)
+    settings.Fly.Enabled = on
+end)
+
+addSlider(movePage, "Fly Speed", 48, function(v)
+    settings.Fly.Value = v
+end)
+
+addToggle(movePage, "Tăng tốc", 100, function(on)
+    settings.Speed.Enabled = on
+end)
+
+addSlider(movePage, "Speed Value", 143, function(v)
+    settings.Speed.Value = v
+end)
+
+print("DAT CHUA V2: Menu loaded")
