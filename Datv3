@@ -1,0 +1,326 @@
+-- MOBILE FPS / TPS MENU
+-- Place in StarterPlayer > StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+local settings = {
+    Aim = false,
+    ESP = false,
+    Fly = false,
+    Speed = false,
+    FOV = 50,
+    SpeedValue = 50
+}
+
+local connections = {}
+local highlights = {}
+local flyConnection
+local flyVelocity
+local originalSpeed = 16
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "MobileControlMenu"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local panel = Instance.new("Frame")
+panel.Size = UDim2.fromOffset(245, 405)
+panel.Position = UDim2.new(0, 15, 0.2, 0)
+panel.BackgroundColor3 = Color3.fromRGB(22, 25, 35)
+panel.Parent = gui
+
+Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 12)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 42)
+title.BackgroundColor3 = Color3.fromRGB(40, 80, 150)
+title.Text = "MOBILE CONTROL"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextScaled = true
+title.Parent = panel
+
+local function makeButton(text, y, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -20, 0, 36)
+    button.Position = UDim2.fromOffset(10, y)
+    button.BackgroundColor3 = Color3.fromRGB(65, 65, 80)
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.TextScaled = true
+    button.Text = text
+    button.Parent = panel
+
+    Instance.new("UICorner", button).CornerRadius = UDim.new(0, 7)
+
+    button.Activated:Connect(function()
+        callback(button)
+    end)
+
+    return button
+end
+
+-- SPEED
+local function updateSpeed()
+    local character = player.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+    if humanoid then
+        if settings.Speed then
+            humanoid.WalkSpeed = settings.SpeedValue
+        else
+            humanoid.WalkSpeed = originalSpeed
+        end
+    end
+end
+
+makeButton("SPEED: OFF", 52, function(button)
+    settings.Speed = not settings.Speed
+    button.Text = "SPEED: " .. (settings.Speed and "ON" or "OFF")
+    button.BackgroundColor3 = settings.Speed
+        and Color3.fromRGB(30, 140, 80)
+        or Color3.fromRGB(65, 65, 80)
+    updateSpeed()
+end)
+
+local speedInput = Instance.new("TextBox")
+speedInput.Size = UDim2.new(1, -20, 0, 30)
+speedInput.Position = UDim2.fromOffset(10, 92)
+speedInput.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+speedInput.TextColor3 = Color3.new(1, 1, 1)
+speedInput.Text = "50"
+speedInput.PlaceholderText = "Speed 1-100"
+speedInput.Parent = panel
+
+speedInput.FocusLost:Connect(function()
+    settings.SpeedValue = math.clamp(
+        math.floor(tonumber(speedInput.Text) or 16), 1, 100
+    )
+    speedInput.Text = tostring(settings.SpeedValue)
+    updateSpeed()
+end)
+
+-- FLY
+local function stopFly()
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+
+    if flyVelocity then
+        flyVelocity:Destroy()
+        flyVelocity = nil
+    end
+
+    local character = player.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+    if humanoid then
+        humanoid.PlatformStand = false
+        humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+    end
+end
+
+local function startFly()
+    stopFly()
+
+    local character = player.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+    if not root or not humanoid then
+        return
+    end
+
+    humanoid.PlatformStand = true
+
+    flyVelocity = Instance.new("BodyVelocity")
+    flyVelocity.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+    flyVelocity.Velocity = Vector3.zero
+    flyVelocity.Parent = root
+
+    flyConnection = RunService.RenderStepped:Connect(function()
+        if not settings.Fly or not root.Parent then
+            stopFly()
+            return
+        end
+
+        local move = humanoid.MoveDirection
+        local vertical = 0
+
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then
+            vertical = 1
+        elseif UIS:IsKeyDown(Enum.KeyCode.LeftControl) then
+            vertical = -1
+        end
+
+        flyVelocity.Velocity =
+            move * settings.SpeedValue
+            + Vector3.new(0, vertical * settings.SpeedValue, 0)
+    end)
+end
+
+makeButton("FLY: OFF", 130, function(button)
+    settings.Fly = not settings.Fly
+
+    button.Text = "FLY: " .. (settings.Fly and "ON" or "OFF")
+    button.BackgroundColor3 = settings.Fly
+        and Color3.fromRGB(30, 140, 80)
+        or Color3.fromRGB(65, 65, 80)
+
+    if settings.Fly then
+        startFly()
+    else
+        stopFly()
+    end
+end)
+
+-- ESP
+local function clearESP()
+    for _, highlight in pairs(highlights) do
+        if highlight then
+            highlight:Destroy()
+        end
+    end
+
+    table.clear(highlights)
+end
+
+local function updateESP()
+    clearESP()
+
+    if not settings.ESP then
+        return
+    end
+
+    for _, otherPlayer in ipairs(Players:GetPlayers()) do
+        if otherPlayer ~= player then
+            local character = otherPlayer.Character
+
+            if character then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "PracticeESP"
+                highlight.FillTransparency = 0.7
+                highlight.OutlineColor = Color3.fromRGB(0, 255, 100)
+                highlight.Parent = character
+
+                highlights[otherPlayer] = highlight
+            end
+        end
+    end
+end
+
+makeButton("ESP: OFF", 170, function(button)
+    settings.ESP = not settings.ESP
+
+    button.Text = "ESP: " .. (settings.ESP and "ON" or "OFF")
+    button.BackgroundColor3 = settings.ESP
+        and Color3.fromRGB(30, 140, 80)
+        or Color3.fromRGB(65, 65, 80)
+
+    updateESP()
+end)
+
+Players.PlayerAdded:Connect(function(otherPlayer)
+    otherPlayer.CharacterAdded:Connect(function()
+        task.wait(1)
+        updateESP()
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function(otherPlayer)
+    if highlights[otherPlayer] then
+        highlights[otherPlayer]:Destroy()
+        highlights[otherPlayer] = nil
+    end
+end)
+
+-- AIM PRACTICE
+local fovCircle = Instance.new("Frame")
+fovCircle.Name = "AimFOV"
+fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+fovCircle.Position = UDim2.fromScale(0.5, 0.5)
+fovCircle.BackgroundTransparency = 1
+fovCircle.BorderSizePixel = 2
+fovCircle.BorderColor3 = Color3.fromRGB(0, 255, 100)
+fovCircle.Parent = gui
+
+local circleCorner = Instance.new("UICorner")
+circleCorner.CornerRadius = UDim.new(1, 0)
+circleCorner.Parent = fovCircle
+
+local function updateFOV()
+    local diameter = settings.FOV * 4
+
+    fovCircle.Size = UDim2.fromOffset(diameter, diameter)
+    fovCircle.Visible = settings.Aim
+end
+
+makeButton("AIM: OFF", 210, function(button)
+    settings.Aim = not settings.Aim
+
+    button.Text = "AIM: " .. (settings.Aim and "ON" or "OFF")
+    button.BackgroundColor3 = settings.Aim
+        and Color3.fromRGB(30, 140, 80)
+        or Color3.fromRGB(65, 65, 80)
+
+    updateFOV()
+end)
+
+local fovInput = Instance.new("TextBox")
+fovInput.Size = UDim2.new(1, -20, 0, 30)
+fovInput.Position = UDim2.fromOffset(10, 250)
+fovInput.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+fovInput.TextColor3 = Color3.new(1, 1, 1)
+fovInput.Text = "50"
+fovInput.PlaceholderText = "FOV 1-100"
+fovInput.Parent = panel
+
+fovInput.FocusLost:Connect(function()
+    settings.FOV = math.clamp(
+        math.floor(tonumber(fovInput.Text) or 50), 1, 100
+    )
+
+    fovInput.Text = tostring(settings.FOV)
+    updateFOV()
+end)
+
+-- CLOSE
+makeButton("CLOSE MENU", 300, function()
+    settings.Fly = false
+    settings.Speed = false
+    settings.ESP = false
+    settings.Aim = false
+
+    stopFly()
+    clearESP()
+    updateSpeed()
+
+    gui:Destroy()
+end)
+
+-- Restore settings after respawn
+player.CharacterAdded:Connect(function(character)
+    local humanoid = character:WaitForChild("Humanoid")
+
+    task.wait(0.2)
+    originalSpeed = 16
+    updateSpeed()
+
+    if settings.Fly then
+        task.wait(0.2)
+        startFly()
+    end
+
+    if settings.ESP then
+        task.wait(0.5)
+        updateESP()
+    end
+end)
+
+updateFOV()
+print("Mobile Control Menu loaded")
