@@ -1,0 +1,203 @@
+-- DAT HUB | Neon Green
+-- Dành cho game Roblox do bạn phát triển
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "DATHub"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local green = Color3.fromRGB(0, 255, 100)
+local dark = Color3.fromRGB(12, 15, 18)
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.fromOffset(270, 300)
+frame.Position = UDim2.new(0.5, -135, 0.5, -150)
+frame.BackgroundColor3 = dark
+frame.Active = true
+frame.Parent = gui
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+local stroke = Instance.new("UIStroke", frame)
+stroke.Color = green
+stroke.Thickness = 2
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -40, 0, 45)
+title.BackgroundTransparency = 1
+title.Text = "DAT HUB"
+title.TextColor3 = green
+title.TextSize = 24
+title.Font = Enum.Font.GothamBold
+title.Parent = frame
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.fromOffset(35, 35)
+close.Position = UDim2.new(1, -38, 0, 5)
+close.Text = "X"
+close.BackgroundColor3 = dark
+close.TextColor3 = green
+close.Parent = frame
+
+close.Activated:Connect(function()
+    frame.Visible = false
+end)
+
+local function makeButton(name, y)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -24, 0, 45)
+    b.Position = UDim2.fromOffset(12, y)
+    b.BackgroundColor3 = Color3.fromRGB(25, 35, 30)
+    b.TextColor3 = green
+    b.TextSize = 16
+    b.Font = Enum.Font.GothamBold
+    b.Text = name .. " [ OFF ]"
+    b.Parent = frame
+
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+    return b
+end
+
+local flyButton = makeButton("FLY", 50)
+local speedButton = makeButton("SPEED", 102)
+local aimButton = makeButton("AIM", 154)
+local espButton = makeButton("ESP", 206)
+
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, -20, 0, 25)
+status.Position = UDim2.new(0, 10, 1, -27)
+status.BackgroundTransparency = 1
+status.TextColor3 = green
+status.Text = "DAT HUB READY"
+status.Parent = frame
+
+local function setButton(button, name, enabled)
+    button.Text = name .. (enabled and " [ ON ]" or " [ OFF ]")
+end
+
+-- SPEED: điều chỉnh tốc độ trong game của bạn
+local speedEnabled = false
+
+speedButton.Activated:Connect(function()
+    speedEnabled = not speedEnabled
+    setButton(speedButton, "SPEED", speedEnabled)
+
+    local character = player.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+    if humanoid then
+        humanoid.WalkSpeed = speedEnabled and 28 or 16
+    end
+end)
+
+player.CharacterAdded:Connect(function(character)
+    local humanoid = character:WaitForChild("Humanoid")
+    if speedEnabled then
+        humanoid.WalkSpeed = 28
+    end
+end)
+
+-- ESP: đánh dấu các nhân vật khác trong game thử nghiệm của bạn
+local espEnabled = false
+local highlights = {}
+
+local function clearESP()
+    for target, highlight in pairs(highlights) do
+        if highlight then
+            highlight:Destroy()
+        end
+        highlights[target] = nil
+    end
+end
+
+local function refreshESP()
+    clearESP()
+    if not espEnabled then return end
+
+    for _, target in ipairs(Players:GetPlayers()) do
+        if target ~= player and target.Character then
+            local highlight = Instance.new("Highlight")
+            highlight.FillColor = green
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+            highlight.Adornee = target.Character
+            highlight.Parent = gui
+            highlights[target] = highlight
+        end
+    end
+end
+
+espButton.Activated:Connect(function()
+    espEnabled = not espEnabled
+    setButton(espButton, "ESP", espEnabled)
+    refreshESP()
+end)
+
+Players.PlayerAdded:Connect(function()
+    task.wait(1)
+    refreshESP()
+end)
+
+Players.PlayerRemoving:Connect(function(target)
+    if highlights[target] then
+        highlights[target]:Destroy()
+        highlights[target] = nil
+    end
+end)
+
+-- AIM: nút bật chế độ hỗ trợ ngắm thử nghiệm.
+-- Chưa tự động khóa mục tiêu.
+local aimEnabled = false
+
+aimButton.Activated:Connect(function()
+    aimEnabled = not aimEnabled
+    setButton(aimButton, "AIM", aimEnabled)
+    status.Text = aimEnabled and "AIM TRAINING ON" or "DAT HUB READY"
+end)
+
+-- FLY: khung chức năng bay thử nghiệm
+-- Cần triển khai điều khiển chuyển động phù hợp trong game của bạn.
+local flyEnabled = false
+
+flyButton.Activated:Connect(function()
+    flyEnabled = not flyEnabled
+    setButton(flyButton, "FLY", flyEnabled)
+    status.Text = flyEnabled and "FLY MODE ON" or "DAT HUB READY"
+end)
+
+-- Kéo menu bằng chuột hoặc cảm ứng
+local dragging = false
+local dragStart, startPos
+
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseMovement
+    ) then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
